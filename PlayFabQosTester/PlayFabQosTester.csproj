@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>netcoreapp3.1</TargetFramework>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+        <PackageReference Include="PlayFabAllSDK" Version="1.72.200518" />
+        <PackageReference Include="System.CommandLine.Experimental" Version="0.3.0-alpha.19577.1" />
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\PlayFabSDKWrapper\PlayFabSDKWrapper.csproj" />
+    </ItemGroup>
+
+</Project>
