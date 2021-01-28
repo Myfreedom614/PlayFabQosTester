@@ -15,7 +15,7 @@ namespace PlayFabSDKWrapper.QoS
         private readonly PlayFabAuthenticationContext _authContext;
         private const int DefaultPingsPerRegion = 10;
         private const int DefaultDegreeOfParallelism = 4;
-        private const int NumTimeoutsForError = 3;
+        private const int NumTimeoutsForError = 10; // Default is 3
         private const int DefaultTimeoutMs = 250;
 
         private readonly PlayFabMultiplayerInstanceAPI multiplayerApi;
@@ -42,11 +42,12 @@ namespace PlayFabSDKWrapper.QoS
             int timeoutMs = DefaultTimeoutMs,
             int pingsPerRegion = DefaultPingsPerRegion,
             int degreeOfParallelism = DefaultDegreeOfParallelism,
-            bool listQosForTitle = false)
+            bool listQosForTitle = false,
+            bool chinaVer = false)
         {
             await new PlayFabUtil.SynchronizationContextRemover();
 
-            QosResult result = await GetResultAsync(timeoutMs, pingsPerRegion, degreeOfParallelism, listQosForTitle);
+            QosResult result = await GetResultAsync(timeoutMs, pingsPerRegion, degreeOfParallelism, listQosForTitle, chinaVer);
             if (result.ErrorCode != (int)QosErrorCode.Success)
             {
                 return result;
@@ -61,7 +62,7 @@ namespace PlayFabSDKWrapper.QoS
         }
 #pragma warning restore 4014
 
-        private async Task<QosResult> GetResultAsync(int timeoutMs, int pingsPerRegion, int degreeOfParallelism, bool listQosForTitle = false)
+        private async Task<QosResult> GetResultAsync(int timeoutMs, int pingsPerRegion, int degreeOfParallelism, bool listQosForTitle = false, bool chinaVer = false)
         {
             if (!_authContext.IsClientLoggedIn())
             {
@@ -72,7 +73,7 @@ namespace PlayFabSDKWrapper.QoS
                 };
             }
 
-            Dictionary<string, string> dataCenterMap = await GetQoSServerList(listQosForTitle);
+            Dictionary<string, string> dataCenterMap = await GetQoSServerList(listQosForTitle, chinaVer);
 
             if (dataCenterMap == null || dataCenterMap.Count == 0)
             {
@@ -86,7 +87,7 @@ namespace PlayFabSDKWrapper.QoS
             return await GetSortedRegionLatencies(timeoutMs, dataCenterMap, pingsPerRegion, degreeOfParallelism);
         }
 
-        private async Task<Dictionary<string, string>> GetQoSServerList(bool listQosForTitle = false)
+        private async Task<Dictionary<string, string>> GetQoSServerList(bool listQosForTitle = false, bool chinaVer = false)
         {
             if (_dataCenterMap?.Count > 0)
             {
@@ -94,18 +95,22 @@ namespace PlayFabSDKWrapper.QoS
                 return _dataCenterMap;
             }
 
-            if (listQosForTitle) {
-                var request = new ListQosServersForTitleRequest();
-                PlayFabResult<ListQosServersForTitleResponse> response = await multiplayerApi.ListQosServersForTitleAsync(request);
+            var response = new PlayFabResult<ListQosServersResponse>();
+            var dataCenterMap = new Dictionary<string, string>();
 
-                if (response == null || response.Error != null)
+            if (!chinaVer && listQosForTitle)
+            {
+                var request = new ListQosServersForTitleRequest();
+                PlayFabResult<ListQosServersForTitleResponse> res = await multiplayerApi.ListQosServersForTitleAsync(request);
+
+                if (res == null || res.Error != null)
                 {
                     return null;
                 }
 
-                var dataCenterMap = new Dictionary<string, string>(response.Result.QosServers.Count);
+                dataCenterMap = new Dictionary<string, string>(res.Result.QosServers.Count);
 
-                foreach (QosServer qosServer in response.Result.QosServers)
+                foreach (QosServer qosServer in res.Result.QosServers)
                 {
                     if (!string.IsNullOrEmpty(qosServer.Region))
                     {
@@ -113,28 +118,39 @@ namespace PlayFabSDKWrapper.QoS
                     }
                 }
                 return _dataCenterMap = dataCenterMap;
+            }
+            else if (chinaVer)
+            {
+                //China Qos Servers
+                response.Result = new ListQosServersResponse()
+                {
+                    QosServers = new List<QosServer>() {
+                        new QosServer() { Region = "ChinaNorth2", ServerUrl = "pfmsqosprodcn.chinanorth2.cloudapp.chinacloudapi.cn" },
+                        new QosServer() { Region = "ChinaEast2", ServerUrl = "pfmsqosprodcn.chinaeast2.cloudapp.chinacloudapi.cn" }
+                    }
+                };
             }
             else
             {
                 var request = new ListQosServersRequest();
-                PlayFabResult<ListQosServersResponse> response = await multiplayerApi.ListQosServersAsync(request);
-
-                if (response == null || response.Error != null)
-                {
-                    return null;
-                }
-
-                var dataCenterMap = new Dictionary<string, string>(response.Result.QosServers.Count);
-
-                foreach (QosServer qosServer in response.Result.QosServers)
-                {
-                    if (!string.IsNullOrEmpty(qosServer.Region))
-                    {
-                        dataCenterMap[qosServer.Region] = qosServer.ServerUrl;
-                    }
-                }
-                return _dataCenterMap = dataCenterMap;
+                response = await multiplayerApi.ListQosServersAsync(request);
             }
+
+            if (response == null || response.Error != null)
+            {
+                return null;
+            }
+
+            dataCenterMap = new Dictionary<string, string>(response.Result.QosServers.Count);
+
+            foreach (QosServer qosServer in response.Result.QosServers)
+            {
+                if (!string.IsNullOrEmpty(qosServer.Region))
+                {
+                    dataCenterMap[qosServer.Region] = qosServer.ServerUrl;
+                }
+            }
+            return _dataCenterMap = dataCenterMap;
         }
 
         private async Task<QosResult> GetSortedRegionLatencies(int timeoutMs,

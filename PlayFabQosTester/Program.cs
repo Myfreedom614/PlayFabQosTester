@@ -27,7 +27,7 @@ namespace PlayFabQosTester
             return rootCommand.InvokeAsync(args);
         }
 
-        private static async Task Run(string titleId, string playerId, bool listQosForTitle, bool verbose)
+        private static async Task Run(string titleId, string playerId, bool chinaVer, bool listQosForTitle, bool verbose)
         {
             PlayFabApiSettings settings = new PlayFabApiSettings() {TitleId = titleId};
             PlayFabClientInstanceAPI clientApi = new PlayFabClientInstanceAPI(settings);
@@ -50,7 +50,7 @@ namespace PlayFabQosTester
             // Measure QoS
             Stopwatch sw = Stopwatch.StartNew();
             PlayFabSDKWrapper.QoS.PlayFabQosApi qosApi = new PlayFabSDKWrapper.QoS.PlayFabQosApi(settings, clientApi.authenticationContext);
-            PlayFabSDKWrapper.QoS.QosResult qosResult = await qosApi.GetQosResultAsync(250, degreeOfParallelism:4, pingsPerRegion:10, listQosForTitle: listQosForTitle);
+            PlayFabSDKWrapper.QoS.QosResult qosResult = await qosApi.GetQosResultAsync(250, degreeOfParallelism:4, pingsPerRegion:10, listQosForTitle: listQosForTitle, chinaVer: chinaVer);
             if (qosResult.ErrorCode != 0)
             {
                 Console.WriteLine(qosResult.ErrorMessage);

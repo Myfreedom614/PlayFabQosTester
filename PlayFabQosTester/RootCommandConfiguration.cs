@@ -10,7 +10,7 @@ namespace PlayFabQosTester
     /// </summary>
     public static class RootCommandConfiguration
     {
-        public static RootCommand GenerateCommand(Func<string, string, bool, bool, Task> onInvoke)
+        public static RootCommand GenerateCommand(Func<string, string, bool, bool, bool, Task> onInvoke)
         {
             var rootCommand = new RootCommand()
             {
@@ -24,6 +24,12 @@ namespace PlayFabQosTester
                     "Optional player id, if not specified a GUID will be used")
                 {
                     Argument = new Argument<string>(defaultValue: () => Guid.NewGuid().ToString())
+                },
+                new Option("--chinaver",
+                    "Is China version Qos beacon")
+                {
+                    Argument = new Argument<bool>(),
+                    Required = false
                 },
                 new Option("--listqosfortitle",
                     "Use ListQosServersForTitle instead")
