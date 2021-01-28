@@ -15,7 +15,7 @@ namespace PlayFabSDKWrapper.QoS
         private readonly PlayFabAuthenticationContext _authContext;
         private const int DefaultPingsPerRegion = 10;
         private const int DefaultDegreeOfParallelism = 4;
-        private const int NumTimeoutsForError = 10; // Default is 3
+        private const int NumTimeoutsForError = 3; // Default is 3
         private const int DefaultTimeoutMs = 250;
 
         private readonly PlayFabMultiplayerInstanceAPI multiplayerApi;
@@ -150,6 +150,9 @@ namespace PlayFabSDKWrapper.QoS
                     dataCenterMap[qosServer.Region] = qosServer.ServerUrl;
                 }
             }
+
+           // if (!chinaVer && !listQosForTitle) dataCenterMap = dataCenterMap.Where(x => x.Key == "EastAsia" || x.Key == "JapanWest").ToDictionary(t => t.Key, t => t.Value); //Specify some regions for testing
+
             return _dataCenterMap = dataCenterMap;
         }
 
